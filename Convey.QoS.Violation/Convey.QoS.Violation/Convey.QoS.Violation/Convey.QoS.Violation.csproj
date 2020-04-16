@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Convey" Version="0.4.292" />
+    <PackageReference Include="Convey.CQRS.Commands" Version="0.4.281" />
+    <PackageReference Include="Convey.CQRS.Events" Version="0.4.281" />
+    <PackageReference Include="Convey.CQRS.Queries" Version="0.4.281" />
+    <PackageReference Include="Jaeger" Version="0.3.7" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Convey.Exceptions\Convey.Exceptions\Convey.Exceptions.csproj" />
+  </ItemGroup>
+
+</Project>
