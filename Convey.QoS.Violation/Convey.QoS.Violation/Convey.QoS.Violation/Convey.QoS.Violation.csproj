@@ -2,6 +2,11 @@
 
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <AssemblyVersion>0.0.1.0</AssemblyVersion>
+    <FileVersion>0.0.1.0</FileVersion>
+    <Version>0.0.1</Version>
+    <Authors>Michał Fic</Authors>
   </PropertyGroup>
 
   <ItemGroup>
@@ -9,11 +14,8 @@
     <PackageReference Include="Convey.CQRS.Commands" Version="0.4.281" />
     <PackageReference Include="Convey.CQRS.Events" Version="0.4.281" />
     <PackageReference Include="Convey.CQRS.Queries" Version="0.4.281" />
+    <PackageReference Include="Convey.Exceptions" Version="1.0.0" />
     <PackageReference Include="Jaeger" Version="0.3.7" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\..\..\Convey.Exceptions\Convey.Exceptions\Convey.Exceptions.csproj" />
   </ItemGroup>
 
 </Project>

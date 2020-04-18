@@ -5,8 +5,6 @@ VisualStudioVersion = 16.0.29920.165
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Convey.QoS.Violation", "Convey.QoS.Violation\Convey.QoS.Violation.csproj", "{5615A631-94DA-4983-9917-2639AE6F69FE}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Convey.Exceptions", "..\..\Convey.Exceptions\Convey.Exceptions\Convey.Exceptions.csproj", "{30DBEC2B-B5C8-411E-9EAF-7D78E75F8EAA}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -17,10 +15,6 @@ Global
 		{5615A631-94DA-4983-9917-2639AE6F69FE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5615A631-94DA-4983-9917-2639AE6F69FE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5615A631-94DA-4983-9917-2639AE6F69FE}.Release|Any CPU.Build.0 = Release|Any CPU
-		{30DBEC2B-B5C8-411E-9EAF-7D78E75F8EAA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{30DBEC2B-B5C8-411E-9EAF-7D78E75F8EAA}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{30DBEC2B-B5C8-411E-9EAF-7D78E75F8EAA}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{30DBEC2B-B5C8-411E-9EAF-7D78E75F8EAA}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
