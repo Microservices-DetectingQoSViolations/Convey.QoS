@@ -1,11 +1,9 @@
-﻿using OpenTracing;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 
 namespace Convey.QoS.Violation.TimeViolation
 {
-    public interface IQoSTimeViolationChecker
+    public interface IQoSTimeViolationChecker<TMessage>
     {
-        IQoSTimeViolationChecker Build(ISpan span, string commandName);
         void Run();
         Task Analyze();
     }

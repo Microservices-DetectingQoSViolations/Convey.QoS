@@ -1,10 +1,11 @@
 ﻿using Convey.CQRS.Events;
+using Convey.Exceptions;
 using Convey.QoS.Violation.Act;
 using Convey.QoS.Violation.Extensions;
+using Convey.QoS.Violation.Options;
 using Convey.QoS.Violation.Sampling;
 using Convey.QoS.Violation.TimeViolation;
 using OpenTracing;
-using OpenTracing.Tag;
 using System;
 using System.Threading.Tasks;
 
@@ -16,17 +17,22 @@ namespace Convey.QoS.Violation.Decorators
         private readonly IEventHandler<TEvent> _handler;
         private readonly ITracer _tracer;
         private readonly IQoSTrackingSampler _trackingSampler;
-        private readonly IQoSTimeViolationChecker _qoSViolateChecker;
+        private readonly IQoSTimeViolationChecker<TEvent> _qoSViolateChecker;
         private readonly IQoSViolateRaiser _qoSViolateRaiser;
 
+        private readonly bool _withTracing;
+
         public QoSTrackerEventHandlerDecorator(IEventHandler<TEvent> handler, ITracer tracer,
-            IQoSTrackingSampler trackingSampler, IQoSTimeViolationChecker qoSViolateChecker, IQoSViolateRaiser qoSViolateRaiser)
+            IQoSTrackingSampler trackingSampler, IQoSTimeViolationChecker<TEvent> qoSViolateChecker, IQoSViolateRaiser qoSViolateRaiser,
+            QoSTrackingOptions trackingOptions)
         {
             _handler = handler;
             _tracer = tracer;
             _trackingSampler = trackingSampler;
             _qoSViolateChecker = qoSViolateChecker;
             _qoSViolateRaiser = qoSViolateRaiser;
+
+            _withTracing = trackingOptions.EnabledTracing && tracer is { };
         }
 
         public async Task HandleAsync(TEvent @event)
@@ -37,13 +43,9 @@ namespace Convey.QoS.Violation.Decorators
                 return;
             }
 
-            var eventName = @event.GetEventName();
-            using var scope = BuildScope(eventName);
-            var span = scope.Span;
+            using var scope = _withTracing ? BuildScope(@event.GetEventName()) : null;
 
-            _qoSViolateChecker
-                .Build(span, eventName)
-                .Run();
+            _qoSViolateChecker.Run();
 
             try
             {
@@ -53,13 +55,10 @@ namespace Convey.QoS.Violation.Decorators
             {
                 switch (exception)
                 {
-                    default:
-                        //TODO: case AppException _:
-                        _qoSViolateRaiser.Raise(span, ViolateType.AmongServicesInconsistency);
+                    case AppException _:
+                        _qoSViolateRaiser.Raise(ViolationType.AmongServicesInconsistency);
                         break;
                 }
-                span.Log(exception.Message);
-                span.SetTag(Tags.Error, true);
                 throw;
             }
 

@@ -5,6 +5,7 @@ using Convey.QoS.Violation.Act;
 using Convey.QoS.Violation.Cache;
 using Convey.QoS.Violation.Decorators;
 using Convey.QoS.Violation.Extensions;
+using Convey.QoS.Violation.Options;
 using Convey.QoS.Violation.Sampling;
 using Convey.QoS.Violation.TimeViolation;
 using Convey.Types;
@@ -28,19 +29,29 @@ namespace Convey.QoS.Violation
         {
             var qoSTrackingOptions = builder.GetOptions<QoSTrackingOptions>(SectionName);
 
-            if (qoSTrackingOptions.Enabled)
+            if (!qoSTrackingOptions.Enabled)
             {
-                builder.Services.AddSingleton(qoSTrackingOptions);
-                builder.Services.AddSingleton<IQoSTrackingSampler, QoSTrackingSampler>();
-                builder.Services.AddSingleton<IQoSCacheFormatter, QoSCacheFormatter>();
-                builder.Services.AddSingleton<IQoSViolateRaiser, QoSViolateRaiser>();
-
-                builder.Services.AddTransient<IQoSTimeViolationChecker, QoSTimeViolationChecker>();
-
-                builder.Services.TryDecorate(typeof(ICommandHandler<>), typeof(QoSTrackerCommandHandlerDecorator<>));
-                builder.Services.TryDecorate(typeof(IEventHandler<>), typeof(QoSTrackerEventHandlerDecorator<>));
-                builder.Services.TryDecorate(typeof(IQueryHandler<,>), typeof(QoSTrackerQueryHandlerDecorator<,>));
+                return builder;
             }
+
+            builder.Services.AddSingleton(qoSTrackingOptions);
+            builder.Services.AddSingleton<IQoSTrackingSampler, QoSTrackingSampler>();
+            builder.Services.AddSingleton<IQoSCacheFormatter, QoSCacheFormatter>();
+
+            builder.Services.AddTransient(typeof(IQoSTimeViolationChecker<>), typeof(QoSTimeViolationChecker<>));
+
+            if (qoSTrackingOptions.EnabledTracing)
+            {
+                builder.Services.AddSingleton<IQoSViolateRaiser, QoSViolateTracerRaiser>();
+            }
+            else
+            {
+                builder.Services.AddSingleton<IQoSViolateRaiser, QoSViolateSimpleRaiser>();
+            }
+
+            builder.Services.TryDecorate(typeof(ICommandHandler<>), typeof(QoSTrackerCommandHandlerDecorator<>));
+            builder.Services.TryDecorate(typeof(IEventHandler<>), typeof(QoSTrackerEventHandlerDecorator<>));
+            builder.Services.TryDecorate(typeof(IQueryHandler<,>), typeof(QoSTrackerQueryHandlerDecorator<,>));
 
             return builder;
         }

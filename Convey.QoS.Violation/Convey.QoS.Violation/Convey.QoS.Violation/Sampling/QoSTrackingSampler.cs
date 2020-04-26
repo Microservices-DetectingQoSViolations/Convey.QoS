@@ -1,5 +1,5 @@
-﻿using System;
-using OpenTracing;
+﻿using Convey.QoS.Violation.Options;
+using System;
 
 namespace Convey.QoS.Violation.Sampling
 {
@@ -8,17 +8,14 @@ namespace Convey.QoS.Violation.Sampling
         private readonly double _samplingRate;
         private readonly Random _random = new Random();
 
-        private readonly ITracer _tracer;
-
-        public QoSTrackingSampler(QoSTrackingOptions options, ITracer tracer)
+        public QoSTrackingSampler(QoSTrackingOptions options)
         {
-            _tracer = tracer;
             _samplingRate = options.SamplingRate;
         }
 
         public bool DoWork()
         {
-            return _tracer.ActiveSpan is {} && _random.NextDouble() <= _samplingRate;
+            return _random.NextDouble() <= _samplingRate;
         }
     }
 }

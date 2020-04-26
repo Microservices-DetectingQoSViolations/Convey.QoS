@@ -1,13 +1,13 @@
 ﻿using Convey.CQRS.Commands;
+using Convey.Exceptions;
 using Convey.QoS.Violation.Act;
 using Convey.QoS.Violation.Extensions;
+using Convey.QoS.Violation.Options;
 using Convey.QoS.Violation.Sampling;
 using Convey.QoS.Violation.TimeViolation;
 using OpenTracing;
-using OpenTracing.Tag;
 using System;
 using System.Threading.Tasks;
-using Convey.Exceptions;
 
 namespace Convey.QoS.Violation.Decorators
 {
@@ -17,18 +17,22 @@ namespace Convey.QoS.Violation.Decorators
         private readonly ICommandHandler<TCommand> _handler;
         private readonly ITracer _tracer;
         private readonly IQoSTrackingSampler _trackingSampler;
-        private readonly IQoSTimeViolationChecker _qoSViolateChecker;
+        private readonly IQoSTimeViolationChecker<TCommand> _qoSViolateChecker;
         private readonly IQoSViolateRaiser _qoSViolateRaiser;
 
+        private readonly bool _withTracing;
+
         public QoSTrackerCommandHandlerDecorator(ICommandHandler<TCommand> handler, ITracer tracer,
-            IQoSTimeViolationChecker qoSViolateChecker, IQoSTrackingSampler trackingSampler,
-            IQoSViolateRaiser qoSViolateRaiser)
+            IQoSTimeViolationChecker<TCommand> qoSViolateChecker, IQoSTrackingSampler trackingSampler,
+            IQoSViolateRaiser qoSViolateRaiser, QoSTrackingOptions trackingOptions)
         {
             _handler = handler;
             _tracer = tracer;
             _trackingSampler = trackingSampler;
             _qoSViolateRaiser = qoSViolateRaiser;
             _qoSViolateChecker = qoSViolateChecker;
+
+            _withTracing = trackingOptions.EnabledTracing && tracer is { };
         }
 
         public async Task HandleAsync(TCommand command)
@@ -39,13 +43,9 @@ namespace Convey.QoS.Violation.Decorators
                 return;
             }
 
-            var commandName = command.GetCommandName();
-            using var scope = BuildScope(commandName);
-            var span = scope.Span;
+            using var scope = _withTracing ? BuildScope(command.GetCommandName()) : null;
 
-            _qoSViolateChecker
-                .Build(span, commandName)
-                .Run();
+            _qoSViolateChecker.Run();
 
             try
             {
@@ -56,11 +56,9 @@ namespace Convey.QoS.Violation.Decorators
                 switch (exception)
                 {
                     case AppException _:
-                        _qoSViolateRaiser.Raise(span, ViolateType.AmongServicesInconsistency);
+                        _qoSViolateRaiser.Raise(ViolationType.AmongServicesInconsistency);
                         break;
                 }
-                span.Log(exception.Message);
-                span.SetTag(Tags.Error, true);
                 throw;
             }
 

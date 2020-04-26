@@ -1,17 +1,19 @@
 ﻿using Convey.QoS.Violation.Act;
 using Convey.QoS.Violation.Cache;
+using Convey.QoS.Violation.Options;
 using Convey.Types;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
-using OpenTracing;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using Convey.QoS.Violation.Extensions;
 
 namespace Convey.QoS.Violation.TimeViolation
 {
-    public class QoSTimeViolationChecker : IQoSTimeViolationChecker
+    public class QoSTimeViolationChecker<TMessage> : IQoSTimeViolationChecker<TMessage>
     {
         private readonly Stopwatch _stopwatch = new Stopwatch();
 
@@ -19,34 +21,44 @@ namespace Convey.QoS.Violation.TimeViolation
         private readonly IMemoryCache _memoryCache;
         private readonly IQoSCacheFormatter _qoSCacheFormatter;
         private readonly IQoSViolateRaiser _qoSViolateRaiser;
-
-        private ISpan _span;
+        private readonly ILogger<IQoSTimeViolationChecker<TMessage>> _logger;
 
         private readonly int _windowComparerSize;
-        private readonly string _appServiceName;
         private string _cacheMsgName;
-        private string _msgName;
+        private readonly double _timeViolationCoefficient;
 
         private const long LongElapsedMilliseconds = 60000;
 
         public QoSTimeViolationChecker(IQoSCacheFormatter qoSCacheFormatter, IQoSViolateRaiser qoSViolateRaiser, 
-            IDistributedCache distributedCache, IMemoryCache memoryCache, QoSTrackingOptions options, AppOptions appOptions)
+            IDistributedCache distributedCache, IMemoryCache memoryCache,
+            ILogger<IQoSTimeViolationChecker<TMessage>> logger, QoSTrackingOptions options, AppOptions appOptions)
         {
             _qoSCacheFormatter = qoSCacheFormatter;
             _qoSViolateRaiser = qoSViolateRaiser;
             _distributedCache = distributedCache;
             _memoryCache = memoryCache;
             _windowComparerSize = options.WindowComparerSize;
-            _appServiceName = appOptions.Service;
-        }
 
-        public IQoSTimeViolationChecker Build(ISpan span, string msgName)
-        {
-            _span = span;
-            _msgName = msgName;
-            _cacheMsgName = $"{_appServiceName.ToLower()}_{_msgName}";
+            var appServiceName = appOptions.Service;
+            var messageName = this.GetMessageName();
+            var timeViolationOptions = options.QoSTimeViolationOptions;
 
-            return this;
+            void AssignCacheMessageName()
+            {
+                _cacheMsgName = $"{appServiceName.ToLower()}_{messageName}";
+            }
+
+            double ChooseTimeCoefficient(char messageShort)
+                => messageShort switch
+                {
+                    'c' => timeViolationOptions.CommandExceedingCoefficient,
+                    'q' => timeViolationOptions.QueryExceedingCoefficient,
+                    'e' => timeViolationOptions.EventExceedingCoefficient,
+                    _ => 0.0
+                };
+
+            AssignCacheMessageName();
+            _timeViolationCoefficient = ChooseTimeCoefficient(messageName.First());
         }
 
         public void Run()
@@ -64,8 +76,6 @@ namespace Convey.QoS.Violation.TimeViolation
 
                 if (RaiseTimeQoSViolationIfNeeded(handlingTime, requiredHandlingTime))
                 {
-                    // log Message
-
                     return;
                 }
 
@@ -73,20 +83,23 @@ namespace Convey.QoS.Violation.TimeViolation
             }
             catch (Exception e)
             {
-                // log msg
+                _logger.LogError(e, "Reading values from cache not working.");
             }
         }
 
         private bool RaiseTimeQoSViolationIfNeeded(long handlingTime, long requiredHandlingTime)
         {
-            var shouldRaise = _qoSViolateRaiser.ShouldRaiseTimeViolation(handlingTime, requiredHandlingTime);
+            var shouldRaise = ShouldRaiseTimeViolation(handlingTime, requiredHandlingTime);
 
             if (shouldRaise)
             {
-                _qoSViolateRaiser.Raise(_span, ViolateType.HandlerTimeExceeded);
+                _qoSViolateRaiser.Raise(ViolationType.HandlerTimeExceeded);
             }
             return shouldRaise;
         }
+
+        private bool ShouldRaiseTimeViolation(long handlingTime, long requiredHandlingTime)
+            => _timeViolationCoefficient * handlingTime > requiredHandlingTime;
 
         private async Task<long> GetRequiredTimeFromCache()
         {

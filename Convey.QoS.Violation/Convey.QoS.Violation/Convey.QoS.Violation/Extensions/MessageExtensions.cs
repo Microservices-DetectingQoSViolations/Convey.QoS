@@ -1,7 +1,9 @@
-﻿using Convey.CQRS.Commands;
+﻿using System;
+using Convey.CQRS.Commands;
 using Convey.CQRS.Events;
 using Convey.CQRS.Queries;
 using System.Linq;
+using Convey.QoS.Violation.TimeViolation;
 
 namespace Convey.QoS.Violation.Extensions
 {
@@ -20,6 +22,18 @@ namespace Convey.QoS.Violation.Extensions
         public static string GetEventName<TEvent>(this TEvent @event) where TEvent : class, IEvent
         {
             return ToUnderscoreCase("E" + @event.GetType().Name);
+        }
+
+        public static string GetMessageName<TMessage>(this IQoSTimeViolationChecker<TMessage> violationChecker)
+        {
+            var message = Activator.CreateInstance<TMessage>();
+            return message switch
+            {
+                ICommand command => command.GetCommandName(),
+                IQuery query => query.GetQueryName(),
+                IEvent @event => @event.GetEventName(),
+                _ => throw new ArgumentException($"Invalid message type {typeof(TMessage)}.")
+            };
         }
 
         public static string ToUnderscoreCase(this string str)
