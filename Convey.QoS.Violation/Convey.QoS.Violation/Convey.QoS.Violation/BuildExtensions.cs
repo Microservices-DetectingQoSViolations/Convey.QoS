@@ -15,6 +15,11 @@ using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
+using Jaeger;
+using Jaeger.Reporters;
+using Jaeger.Samplers;
+using OpenTracing;
 
 namespace Convey.QoS.Violation
 {
@@ -47,6 +52,12 @@ namespace Convey.QoS.Violation
             else
             {
                 builder.Services.AddSingleton<IQoSViolateRaiser, QoSViolateSimpleRaiser>();
+
+                ITracer dummyTracer = new Tracer.Builder(Assembly.GetEntryAssembly().FullName)
+                    .WithReporter(new NoopReporter())
+                    .WithSampler(new ConstSampler(false))
+                    .Build();
+                builder.Services.AddSingleton(dummyTracer);
             }
 
             builder.Services.TryDecorate(typeof(ICommandHandler<>), typeof(QoSTrackerCommandHandlerDecorator<>));
