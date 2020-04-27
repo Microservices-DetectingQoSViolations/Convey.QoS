@@ -37,6 +37,7 @@ namespace Convey.QoS.Violation.TimeViolation
             _qoSViolateRaiser = qoSViolateRaiser;
             _distributedCache = distributedCache;
             _memoryCache = memoryCache;
+            _logger = logger;
             _windowComparerSize = options.WindowComparerSize;
 
             var appServiceName = appOptions.Service;

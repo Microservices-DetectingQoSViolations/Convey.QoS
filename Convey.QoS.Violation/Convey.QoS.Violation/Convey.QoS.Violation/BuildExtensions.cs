@@ -67,7 +67,7 @@ namespace Convey.QoS.Violation
             return builder;
         }
 
-        public static IApplicationBuilder UseCache(
+        public static IApplicationBuilder UseQoSCache(
             this IApplicationBuilder app)
         {
             using var scope = app.ApplicationServices.CreateScope();
