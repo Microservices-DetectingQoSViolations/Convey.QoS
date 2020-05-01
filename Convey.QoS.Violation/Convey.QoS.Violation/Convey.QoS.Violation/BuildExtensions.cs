@@ -16,6 +16,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using Convey.QoS.Violation.Metrics;
 using Jaeger;
 using Jaeger.Reporters;
 using Jaeger.Samplers;
@@ -28,9 +29,15 @@ namespace Convey.QoS.Violation
         private const string SectionName = "qoSTracking";
 
         private const long LongElapsedMilliseconds = 60000;
-        private static IQoSCacheFormatter _formatter;
 
-        public static IConveyBuilder AddQoSTrackingDecorators(this IConveyBuilder builder)
+        public static IConveyBuilder AddQoSViolation(this IConveyBuilder builder)
+        {
+            return builder
+                .AddQoSViolationHelpers()
+                .AddQoSTrackingDecorators();
+        }
+
+        public static IConveyBuilder AddQoSViolationHelpers(this IConveyBuilder builder)
         {
             var qoSTrackingOptions = builder.GetOptions<QoSTrackingOptions>(SectionName);
 
@@ -47,6 +54,7 @@ namespace Convey.QoS.Violation
 
             if (qoSTrackingOptions.EnabledTracing)
             {
+                builder.Services.AddTransient<IQoSViolationMetricsRegistry, QoSViolationMetricsRegistry>();
                 builder.Services.AddSingleton<IQoSViolateRaiser, QoSViolateTracerRaiser>();
             }
             else
@@ -60,11 +68,21 @@ namespace Convey.QoS.Violation
                 builder.Services.AddSingleton(dummyTracer);
             }
 
+            return builder;
+        }
+
+        public static IConveyBuilder AddQoSTrackingDecorators(this IConveyBuilder builder)
+        {
             builder.Services.TryDecorate(typeof(ICommandHandler<>), typeof(QoSTrackerCommandHandlerDecorator<>));
             builder.Services.TryDecorate(typeof(IEventHandler<>), typeof(QoSTrackerEventHandlerDecorator<>));
             builder.Services.TryDecorate(typeof(IQueryHandler<,>), typeof(QoSTrackerQueryHandlerDecorator<,>));
 
             return builder;
+        }
+
+        public static IApplicationBuilder UseQoS(this IApplicationBuilder app)
+        {
+            return app.UseQoSCache();
         }
 
         public static IApplicationBuilder UseQoSCache(
@@ -102,9 +120,9 @@ namespace Convey.QoS.Violation
         private static void SetDefaultCacheValues(IServiceScope scope, IEnumerable<string> allHandlersClasses)
         {
             var cache = scope.ServiceProvider.GetService<IDistributedCache>();
-            _formatter = scope.ServiceProvider.GetService<IQoSCacheFormatter>();
+            var formatter = scope.ServiceProvider.GetService<IQoSCacheFormatter>();
 
-            var serializedLongElapsedMilliseconds = _formatter.SerializeNumber(LongElapsedMilliseconds);
+            var serializedLongElapsedMilliseconds = formatter.SerializeNumber(LongElapsedMilliseconds);
 
             allHandlersClasses
                 .ToList()

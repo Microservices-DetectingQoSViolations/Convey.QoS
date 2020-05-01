@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using Convey.QoS.Violation.Metrics;
+using Microsoft.Extensions.Logging;
 using OpenTracing;
 using OpenTracing.Tag;
 
@@ -10,17 +11,20 @@ namespace Convey.QoS.Violation.Act
 
         private readonly ITracer _tracer;
         private readonly ILogger<IQoSViolateRaiser> _logger;
+        private readonly IQoSViolationMetricsRegistry _qoSViolationMetricsRegistry;
 
-        public QoSViolateTracerRaiser(ITracer tracer, ILogger<IQoSViolateRaiser> logger)
+        public QoSViolateTracerRaiser(ITracer tracer, ILogger<IQoSViolateRaiser> logger, IQoSViolationMetricsRegistry qoSViolationMetricsRegistry)
         {
             _tracer = tracer;
             _logger = logger;
+            _qoSViolationMetricsRegistry = qoSViolationMetricsRegistry;
         }
 
         public void Raise(ViolationType violationType)
         {
             RaiseInLogger(violationType);
             RaiseInTracer(violationType);
+            RaiseAsMetric(violationType);
         }
 
         private void RaiseInLogger(ViolationType violationType)
@@ -39,6 +43,11 @@ namespace Convey.QoS.Violation.Act
 
             span.Log($"QoSViolation {violationType} raised.");
             span.SetTag(Violation, violationType.ToString());
+        }
+
+        private void RaiseAsMetric(ViolationType violationType)
+        {
+            _qoSViolationMetricsRegistry.IncrementQoSViolation(violationType);
         }
     }
 }
