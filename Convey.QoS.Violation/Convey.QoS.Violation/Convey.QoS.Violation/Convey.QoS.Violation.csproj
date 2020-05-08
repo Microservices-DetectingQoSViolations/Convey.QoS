@@ -17,6 +17,8 @@
     <PackageReference Include="Convey.CQRS.Queries" Version="0.4.281" />
     <PackageReference Include="Convey.Exceptions" Version="1.0.0" />
     <PackageReference Include="Jaeger" Version="0.3.7" />
+    <PackageReference Include="prometheus-net.AspNetCore" Version="3.5.0" />
+    <PackageReference Include="prometheus-net.DotNetRuntime" Version="3.3.1" />
   </ItemGroup>
 
 </Project>

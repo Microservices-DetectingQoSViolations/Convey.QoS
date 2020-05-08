@@ -17,6 +17,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using Convey.QoS.Violation.Metrics;
+using Convey.QoS.Violation.Runtime;
 using Jaeger;
 using Jaeger.Reporters;
 using Jaeger.Samplers;
@@ -34,7 +35,8 @@ namespace Convey.QoS.Violation
         {
             return builder
                 .AddQoSViolationHelpers()
-                .AddQoSTrackingDecorators();
+                .AddQoSTrackingDecorators()
+                .AddRuntimeMetrics();
         }
 
         public static IConveyBuilder AddQoSViolationHelpers(this IConveyBuilder builder)
@@ -47,10 +49,6 @@ namespace Convey.QoS.Violation
             }
 
             builder.Services.AddSingleton(qoSTrackingOptions);
-            builder.Services.AddSingleton<IQoSTrackingSampler, QoSTrackingSampler>();
-            builder.Services.AddSingleton<IQoSCacheFormatter, QoSCacheFormatter>();
-
-            builder.Services.AddTransient(typeof(IQoSTimeViolationChecker<>), typeof(QoSTimeViolationChecker<>));
 
             if (qoSTrackingOptions.EnabledTracing)
             {
@@ -73,6 +71,11 @@ namespace Convey.QoS.Violation
 
         public static IConveyBuilder AddQoSTrackingDecorators(this IConveyBuilder builder)
         {
+            builder.Services.AddSingleton<IQoSTrackingSampler, QoSTrackingSampler>();
+            builder.Services.AddSingleton<IQoSCacheFormatter, QoSCacheFormatter>();
+
+            builder.Services.AddTransient(typeof(IQoSTimeViolationChecker<>), typeof(QoSTimeViolationChecker<>));
+
             builder.Services.TryDecorate(typeof(ICommandHandler<>), typeof(QoSTrackerCommandHandlerDecorator<>));
             builder.Services.TryDecorate(typeof(IEventHandler<>), typeof(QoSTrackerEventHandlerDecorator<>));
             builder.Services.TryDecorate(typeof(IQueryHandler<,>), typeof(QoSTrackerQueryHandlerDecorator<,>));
@@ -82,7 +85,9 @@ namespace Convey.QoS.Violation
 
         public static IApplicationBuilder UseQoS(this IApplicationBuilder app)
         {
-            return app.UseQoSCache();
+            return app
+                .UseQoSCache()
+                .UseRuntimeMetrics();
         }
 
         public static IApplicationBuilder UseQoSCache(
