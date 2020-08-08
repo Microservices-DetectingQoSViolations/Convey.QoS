@@ -2,6 +2,7 @@
 {
     public static class CacheEntries
     {
-        public static string WarmUpMessages = "WarmUpMessages";
+        public static string InstanceWarmedUp = "InstanceWarmedUp";
+        public static string WarmUpMessagesNumber = "WarmUpMessagesNumber";
     }
 }
