@@ -1,7 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using Microsoft.AspNetCore.Builder;
+﻿using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.DependencyInjection;
 using Prometheus;
 using Prometheus.DotNetRuntime;
 
@@ -15,7 +13,13 @@ namespace Convey.QoS.Violation.Runtime
                 .Customize()
                 .WithGcStats()
                 .WithThreadPoolStats()
+                .WithThreadPoolSchedulingStats()
                 .StartCollecting();
+
+            builder.Services.AddPrometheusCounters();
+            builder.Services.AddPrometheusAspNetCoreMetrics();
+            builder.Services.AddPrometheusHttpClientMetrics();
+            builder.Services.AddPrometheusGrpcClientMetrics();
 
             return builder;
         }

@@ -86,8 +86,7 @@ namespace Convey.QoS.Violation
         public static IApplicationBuilder UseQoS(this IApplicationBuilder app)
         {
             return app
-                .UseQoSCache()
-                .UseRuntimeMetrics();
+                .UseQoSCache();
         }
 
         public static IApplicationBuilder UseQoSCache(

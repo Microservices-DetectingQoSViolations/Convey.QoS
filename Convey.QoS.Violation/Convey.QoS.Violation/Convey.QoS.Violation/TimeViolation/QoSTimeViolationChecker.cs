@@ -28,6 +28,7 @@ namespace Convey.QoS.Violation.TimeViolation
         private readonly double _timeViolationCoefficient;
 
         private const long LongElapsedMilliseconds = 60000;
+        private bool _instanceWarmedUp = false;
 
         public QoSTimeViolationChecker(IQoSCacheFormatter qoSCacheFormatter, IQoSViolateRaiser qoSViolateRaiser, 
             IDistributedCache distributedCache, IMemoryCache memoryCache,
@@ -70,6 +71,18 @@ namespace Convey.QoS.Violation.TimeViolation
         public async Task Analyze()
         {
             _stopwatch.Stop();
+
+            if (!_instanceWarmedUp)
+            {
+                var warmUpMessagesNumber = _memoryCache.GetOrCreate(CacheEntries.WarmUpMessages, entry => 0);
+                warmUpMessagesNumber += 1;
+
+                _instanceWarmedUp = warmUpMessagesNumber >= _windowComparerSize;
+
+                _memoryCache.Set(CacheEntries.WarmUpMessages, warmUpMessagesNumber);
+                return;
+            }
+
             var handlingTime = _stopwatch.ElapsedMilliseconds;
             try
             {
