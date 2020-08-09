@@ -1,5 +1,6 @@
 ﻿using Convey.QoS.Violation.Act;
 using Convey.QoS.Violation.Cache;
+using Convey.QoS.Violation.Extensions;
 using Convey.QoS.Violation.Options;
 using Convey.Types;
 using Microsoft.Extensions.Caching.Distributed;
@@ -9,7 +10,6 @@ using System;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
-using Convey.QoS.Violation.Extensions;
 
 namespace Convey.QoS.Violation.TimeViolation
 {
@@ -28,7 +28,6 @@ namespace Convey.QoS.Violation.TimeViolation
         private readonly double _timeViolationCoefficient;
 
         private const long LongElapsedMilliseconds = 60000;
-        private static bool _initialized = false;
 
         public QoSTimeViolationChecker(IQoSCacheFormatter qoSCacheFormatter, IQoSViolateRaiser qoSViolateRaiser, 
             IDistributedCache distributedCache, IMemoryCache memoryCache,
@@ -72,7 +71,9 @@ namespace Convey.QoS.Violation.TimeViolation
         {
             _stopwatch.Stop();
 
-            if (_initialized || !_memoryCache.GetOrCreate(CacheEntries.InstanceWarmedUp, entry => false))
+            var instanceWarmingUp = !_memoryCache.GetOrCreate(CacheEntries.InstanceWarmedUp, entry => false);
+
+            if (instanceWarmingUp)
             {
                 var warmUpMessagesNumber = _memoryCache.GetOrCreate(CacheEntries.WarmUpMessagesNumber, entry => 0);
                 warmUpMessagesNumber += 1;
@@ -88,8 +89,6 @@ namespace Convey.QoS.Violation.TimeViolation
 
                 return;
             }
-
-            _initialized = true;
 
             var handlingTime = _stopwatch.ElapsedMilliseconds;
             try
