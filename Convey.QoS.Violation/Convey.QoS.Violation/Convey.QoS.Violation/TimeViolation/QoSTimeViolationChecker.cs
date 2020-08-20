@@ -120,7 +120,7 @@ namespace Convey.QoS.Violation.TimeViolation
         }
 
         private bool ShouldRaiseTimeViolation(long handlingTime, long requiredHandlingTime)
-            => _timeViolationCoefficient * handlingTime > requiredHandlingTime;
+            => (_timeViolationCoefficient * handlingTime) > (requiredHandlingTime + 2);
 
         private async Task<long> GetRequiredTimeFromCache()
         {
@@ -150,11 +150,11 @@ namespace Convey.QoS.Violation.TimeViolation
 
             if (nextIndex == 0)
             {
-                var meanHandlerTime = cachedArray.Average();
+                var meanHandlerTime = cachedArray.Average() + cachedArray.Min();
                 if (meanHandlerTime < requiredHandlingTime)
                 {
                     await _distributedCache.SetAsync(_cacheMsgName,
-                        _qoSCacheFormatter.SerializeNumber((long)meanHandlerTime));
+                        _qoSCacheFormatter.SerializeNumber((long)meanHandlerTime + 1));
                 }
             }
         }
